@@ -1,0 +1,126 @@
+---
+title: "Practical Machine Learning - Prediction Assignment Writeup"
+author: "Augusto Cesar de Aquino Ribas"
+date: "25-01-2015"
+output: html_document
+---
+
+## Abstract
+
+text text
+
+
+## Packages needed
+Load Packages, data
+
+```{r,results='hide'}
+#install.packages("caret")
+#install.packages("randomForest")
+#install.packages("rpart")
+#install.packages("rpart.plot")
+#install.packages("e1071")
+
+#Download Data
+#download.file(url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+#              destfile="pml-training.csv",method="wget")
+#download.file(url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+#              destfile="pml-testing.csv",method="wget")
+
+
+#Packages needed
+library(caret)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(e1071)
+```
+
+
+## Data pre-processing
+Load data, pre-process
+
+```{r,results='hide'}
+#Load data
+training.data<-read.csv("pml-training.csv")
+testing.data<-read.csv("pml-training.csv")
+
+# Delete columns with all missing values
+training.data<-training.data[,colSums(is.na(training.data)) == 0]
+testing.data <-testing.data[,colSums(is.na(testing.data)) == 0]
+
+#Irrelevante variables (data descriptors)
+training.data   <-training.data[,-c(1:7)]
+testing.data <-testing.data[,-c(1:7)]
+
+#Removeing factors and variables with too few data (too much NA)
+training.data<-data.frame(classe=training.data$classe,training.data[,!sapply(training.data,is.factor)])
+testing.data<-data.frame(classe=testing.data$classe,testing.data[,!sapply(testing.data,is.factor)])
+
+#generateing training(60%) and testing(40%) data
+subsamples <- createDataPartition(y=training.data$classe, p=0.60, list=FALSE)
+subTraining <- training.data[subsamples, ] 
+subTesting <- training.data[-subsamples, ]
+```
+
+Plot
+
+```{r, echo=FALSE}
+#Plot of the Training data levels
+classe.plot <- ggplot(subTraining, aes(classe))
+classe.plot + geom_bar() + xlab("Class levels") + ylab("Frequency") +
+    ggtitle("Bar Plot of levels of the variable classe within the subTraining data set")
+```
+
+Variables
+```{r}
+#Variables for the model
+colnames(subTraining)
+```
+
+## Decision tree model
+
+```{r}
+#Decision tree model
+decisiontree.model <- rpart(classe ~ ., data=subTraining, method="class")
+```
+
+plot
+
+```{r, echo=FALSE}
+#Plot of Decision tree model
+rpart.plot(decisiontree.model, main="Classification Tree", extra=102, under=TRUE, faclen=0)
+```
+
+predict
+```{r}
+#Predicting
+decisiontree.prediction <- predict(decisiontree.model, subTesting, type = "class")
+confusionMatrix(decisiontree.prediction, subTesting$classe)
+```
+
+
+## Random forest model
+
+```{r}
+#Random Forest Model
+randomForest.model <- randomForest(classe ~. , data=subTraining, method="class")
+```
+
+plot
+
+```{r, echo=FALSE}
+#Plot of Random Forest Model
+varImpPlot(randomForest.model)
+```
+
+predict
+```{r}
+#Predicting
+randomForest.prediction <- predict(randomForest.model, subTesting, type = "class")
+confusionMatrix(randomForest.prediction, subTesting$classe)
+```
+
+
+## Conclusion
+
+blablabla
