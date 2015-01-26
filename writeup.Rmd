@@ -7,12 +7,16 @@ output: html_document
 
 ## Abstract
 
-text text
+#The data
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
+#Objective
+In this study, six participants participated in a dumbell lifting exercise five different ways. The five ways, were (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E). Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.
+
+By processing data gathered from accelerometers on the belt, forearm, arm, and dumbell of the participants in two machine learning algorithms, i checked the capaccity of prediction of both almorithms and report the results here.
 
 ## Packages needed
-Load Packages, data
-
+To start the analysis, we need first to load the needed packages, download the data. Code for installing the packages  and download the data are commented (with #), remove the coments as needed.
 ```{r,results='hide'}
 #install.packages("caret")
 #install.packages("randomForest")
@@ -37,24 +41,28 @@ library(e1071)
 
 
 ## Data pre-processing
-Load data, pre-process
+Data were present as comma separeted files ("csv"). After loading the files, first we remove data descriptors, "X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "new_window" and  num_window then we proceed to remove columns with all missing values and columns with too few data.
+
+Then we proced to separare the training data in two sets, one for training the model and another for test the model in a cross valitadtion.
+The initial data had 19622 with 53 variables, i choosed to set 60% for the training and 40% for cross validation. Which led to 11776 trainning observations and 7846 testing observations for cross-validation.
+
 
 ```{r,results='hide'}
 #Load data
 training.data<-read.csv("pml-training.csv")
-testing.data<-read.csv("pml-training.csv")
-
-# Delete columns with all missing values
-training.data<-training.data[,colSums(is.na(training.data)) == 0]
-testing.data <-testing.data[,colSums(is.na(testing.data)) == 0]
+testing.data<-read.csv("pml-testing.csv")
 
 #Irrelevante variables (data descriptors)
 training.data   <-training.data[,-c(1:7)]
 testing.data <-testing.data[,-c(1:7)]
 
+# Delete columns with all missing values
+training.data<-training.data[,colSums(is.na(training.data)) == 0]
+testing.data <-testing.data[,colSums(is.na(testing.data)) == 0]
+
 #Removeing factors and variables with too few data (too much NA)
 training.data<-data.frame(classe=training.data$classe,training.data[,!sapply(training.data,is.factor)])
-testing.data<-data.frame(classe=testing.data$classe,testing.data[,!sapply(testing.data,is.factor)])
+testing.data<-data.frame(testing.data[,!sapply(testing.data,is.factor)])
 
 #generateing training(60%) and testing(40%) data
 subsamples <- createDataPartition(y=training.data$classe, p=0.60, list=FALSE)
@@ -62,8 +70,7 @@ subTraining <- training.data[subsamples, ]
 subTesting <- training.data[-subsamples, ]
 ```
 
-Plot
-
+A plot of the outcome variable allowed us to see the frequency of each level in the subTraining data set.
 ```{r, echo=FALSE}
 #Plot of the Training data levels
 classe.plot <- ggplot(subTraining, aes(classe))
@@ -71,7 +78,7 @@ classe.plot + geom_bar() + xlab("Class levels") + ylab("Frequency") +
     ggtitle("Bar Plot of levels of the variable classe within the subTraining data set")
 ```
 
-Variables
+From the graph above, we can see that each level frequency is within the same order of magnitude of each other. Level A is the most frequent while level D is the least frequent. I also list the 53 variables used to the modeling.
 ```{r}
 #Variables for the model
 colnames(subTraining)
@@ -79,19 +86,21 @@ colnames(subTraining)
 
 ## Decision tree model
 
+Decision tree learning uses a decision tree as a predictive model which maps observations about an item to conclusions about the item's target value. I can then use the features of the data to predict the participant activity.
+First we create the model.
+
 ```{r}
 #Decision tree model
 decisiontree.model <- rpart(classe ~ ., data=subTraining, method="class")
 ```
 
-plot
-
+We can se the model in the form of a decision tree, where the leafs are the activty and as we descend from the root, we can calculate which activity a person is doing based on the data he(she) is produceing.
 ```{r, echo=FALSE}
 #Plot of Decision tree model
 rpart.plot(decisiontree.model, main="Classification Tree", extra=102, under=TRUE, faclen=0)
 ```
 
-predict
+And with the model we can predict the result for the testing data and verify the quality of the model.
 ```{r}
 #Predicting
 decisiontree.prediction <- predict(decisiontree.model, subTesting, type = "class")
@@ -100,20 +109,20 @@ confusionMatrix(decisiontree.prediction, subTesting$classe)
 
 
 ## Random forest model
+Random forests are an ensemble learning method for classification, regression and other tasks, that operate by constructing a multitude of decision trees at training time and outputting the class that is the mode of the classes (classification) or mean prediction (regression) of the individual trees. Random forests correct for decision trees' habit of overfitting to their training set.
 
 ```{r}
 #Random Forest Model
 randomForest.model <- randomForest(classe ~. , data=subTraining, method="class")
 ```
 
-plot
-
+We can check which variables are more important for the prediction.
 ```{r, echo=FALSE}
 #Plot of Random Forest Model
 varImpPlot(randomForest.model)
 ```
 
-predict
+And as done for the decision tree model, we can predict the results for the testing data set for cross-validation, checking que quality of the model.
 ```{r}
 #Predicting
 randomForest.prediction <- predict(randomForest.model, subTesting, type = "class")
@@ -123,4 +132,16 @@ confusionMatrix(randomForest.prediction, subTesting$classe)
 
 ## Conclusion
 
-blablabla
+Random Forest algorithm performed better than Decision Tree.
+Accuracy for Random Forest model was 0.9941, with a confidence interval of 95% of 0.9922, 0.9957, compared to an accuracy of 0.7462, with confidence interval of 95% of 0.7365 to 0.7558 accuracy for the decision tree model. The random Forest model is clearly the best choice. The expected out-of-sample error is estimated at 0.005, or 0.5%. The expected out-of-sample error is calculated as 1 - accuracy for predictions made against the cross-validation set. Our Test data set comprises 20 cases. With an accuracy above 99% on our cross-validation data, we can expect that very few, or none, of the test samples will be missclassified.
+
+##Submission
+
+```{r}
+# predict outcome levels on the original Testing data set using Random Forest algorithm
+predictfinal <- predict(randomForest.model, testing.data, type="class")
+predictfinal
+```
+
+## Reference
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.

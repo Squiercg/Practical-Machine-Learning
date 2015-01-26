@@ -20,7 +20,7 @@ library(e1071)
 
 #Load data
 training.data<-read.csv("pml-training.csv")
-testing.data<-read.csv("pml-training.csv")
+testing.data<-read.csv("pml-testing.csv")
 
 # Delete columns with all missing values
 training.data<-training.data[,colSums(is.na(training.data)) == 0]
@@ -34,10 +34,15 @@ testing.data <-testing.data[,-c(1:7)]
 training.data<-data.frame(classe=training.data$classe,training.data[,!sapply(training.data,is.factor)])
 testing.data<-data.frame(classe=testing.data$classe,testing.data[,!sapply(testing.data,is.factor)])
 
+
+
 #generateing training(60%) and testing(40%) data
 subsamples <- createDataPartition(y=training.data$classe, p=0.60, list=FALSE)
 subTraining <- training.data[subsamples, ] 
 subTesting <- training.data[-subsamples, ]
+
+nrow(subTraining)
+nrow(subTesting)
 
 #Plot of the Training data levels
 classe.plot <- ggplot(subTraining, aes(classe))
@@ -67,3 +72,5 @@ varImpPlot(randomForest.model)
 #Predicting
 randomForest.prediction <- predict(randomForest.model, subTesting, type = "class")
 confusionMatrix(randomForest.prediction, subTesting$classe)
+
+getwd()
